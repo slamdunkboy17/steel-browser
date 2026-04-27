@@ -173,10 +173,21 @@ export class SessionService {
       deviceConfig,
     });
 
-    const userDataDir =
-      options.userDataDir || options.persist === true
+    // YG3 fork: original code shared the same userDataDir across all non-
+    // persistent sessions, so cookies from a previous login leaked into
+    // the next session — a colleague onboarding a new LinkedIn account
+    // would land already signed in as whoever connected last.
+    //
+    // Now: honor an explicit options.userDataDir if provided; if
+    // options.persist === true use the shared persistent dir as before;
+    // otherwise default to a UNIQUE per-session temp dir so each
+    // onboarding starts with a clean Chromium profile.
+    const sessionUuid = sessionId || uuidv4();
+    const userDataDir = options.userDataDir
+      ? options.userDataDir
+      : options.persist === true
         ? path.join(dirname(fileURLToPath(import.meta.url)), "..", "..", "user-data-dir")
-        : env.CHROME_USER_DATA_DIR || path.join(os.tmpdir(), "steel-chrome");
+        : env.CHROME_USER_DATA_DIR || path.join(os.tmpdir(), `steel-chrome-${sessionUuid}`);
     await mkdir(userDataDir, { recursive: true });
 
     const defaultUserPreferences = {
