@@ -14,9 +14,20 @@ function isEmbed(): boolean {
   return params.get("embed") === "true" || params.get("embed") === "1";
 }
 
+// YG3 fork: when there's no router param (embed mode loads the root URL),
+// fall back to ?session_id=<uuid> so callers can target a specific session.
+// Without this, Steel's useSession(undefined!) hook returns sessions[0]
+// which on a busy server is whoever happened to be created most recently
+// — not the session we provisioned for this onboarding.
+function getEmbedSessionId(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return new URLSearchParams(window.location.search).get("session_id") ?? undefined;
+}
+
 export function SessionContainer() {
-  const { id } = useParams();
+  const params = useParams();
   const embed = isEmbed();
+  const id = params.id ?? getEmbedSessionId();
 
   const { useSession } = useSessionsContext();
   const { data: session, isLoading, isError } = useSession(id!);
