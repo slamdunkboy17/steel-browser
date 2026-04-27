@@ -6,14 +6,31 @@ import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
+// YG3 fork: when ?embed=true, default the console hidden and strip
+// padding/borders so the Chromium viewer fills the entire iframe.
+function isEmbed(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("embed") === "true" || params.get("embed") === "1";
+}
+
 export function SessionContainer() {
   const { id } = useParams();
+  const embed = isEmbed();
 
   const { useSession } = useSessionsContext();
   const { data: session, isLoading, isError } = useSession(id!);
-  const [showConsole, setShowConsole] = useState(true);
+  const [showConsole, setShowConsole] = useState(!embed);
   if (isLoading) return <div>Loading...</div>;
   if (isError || !session) return <div>Error</div>;
+
+  if (embed) {
+    return (
+      <div className="flex flex-col overflow-hidden items-center justify-center h-full w-full bg-[var(--gray-2)]">
+        <SessionViewer id={id!} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col overflow-hidden items-center justify-center h-full w-full p-4">
